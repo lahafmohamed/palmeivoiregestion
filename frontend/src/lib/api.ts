@@ -20,16 +20,8 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Redirige vers /login si le token expire pendant une session
+// Redirection /login désactivée temporairement
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem(AUTH_TOKEN_KEY)
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
-    }
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
