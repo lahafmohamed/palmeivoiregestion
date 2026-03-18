@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx shadcn@latest add avatar --yes)",
+      "Bash(powershell.exe -Command \"Get-NetTCPConnection -State Listen | Where-Object LocalPort -eq 3000 | Select-Object LocalPort,OwningProcess\")",
+      "Bash(powershell.exe -Command \"Get-Process -Id 23240 | Select-Object Id,Name,Path,StartTime\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 23240 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/health)",
+      "Bash(powershell.exe -Command \"Start-Process -FilePath ''node.exe'' -ArgumentList ''C:\\\\Program Files\\\\nodejs\\\\node_modules\\\\npm\\\\node_modules\\\\npx\\\\bin\\\\npx.js tsx src/server.ts'' -WorkingDirectory ''C:\\\\Users\\\\Mohamed\\\\Desktop\\\\palme-ivoire-gestion\\\\backend'' -WindowStyle Hidden\")",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" http://localhost:3000/api/health)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(npx shadcn@latest add calendar popover --yes)",
+      "Bash(npx shadcn@latest add calendar popover)",
+      "Bash(grep -r cache c:UsersMohamedDesktoppalme-ivoire-gestionbackendsrc --include=*.ts)",
+      "Bash(npx prisma:*)",
+      "Bash(2)",
+      "Bash(node -e \":*)",
+      "Bash(npm install:*)",
+      "Bash(echo \"SELECT COUNT\\(*\\) FROM tickets WHERE statut = ''''PAYÉ'''';\")",
+      "Bash(echo \"UPDATE tickets SET statut = ''''PAYÉ'''', date_paiement = NOW\\(\\) FROM pesees WHERE tickets.pesee_id = pesees.id AND pesees.date_pesee < ''''2026-03-13'''' AND tickets.statut = ''''EN_ATTENTE'''' AND pesees.gespont_id NOT IN \\(''''PIG26002328'''',''''PIG26002486'''',''''PIG26002487'''',''''PIG26002546'''',''''PIG26002570'''',''''PIG26004067'''',''''PIG26004215'''',''''PIG26004236'''',''''PIG26004240'''',''''PIG26004268'''',''''PIG26004285'''',''''PIG26004286'''',''''PIG26004287'''',''''PIG26004301'''',''''PIG26004305'''',''''PIG26004307'''',''''PIG26004308'''',''''PIG26004316'''',''''PIG26004323'''',''''PIG26004325'''',''''PIG26004333'''',''''PIG26004334'''',''''PIG26004335'''',''''PIG26004366'''',''''PIG26004372'''',''''PIG26004400'''',''''PIG26004401'''',''''PIG26004404'''',''''PIG26004407'''',''''PIG26004412'''',''''PIG26004413'''',''''PIG26004416'''',''''PIG26004418'''',''''PIG26004426'''',''''PIG26004431'''',''''PIG26004432'''',''''PIG26004442'''',''''PIG26004443'''',''''PIG26004445'''',''''PIG26004447'''',''''PIG26004452'''',''''PIG26004455'''',''''PIG26004465'''',''''PIG26004468'''',''''PIG26004470'''',''''PIG26004475'''',''''PIG26004477'''',''''PIG26004481'''',''''PIG26004484'''',''''PIG26004489'''',''''PIG26004490'''',''''PIG26004491'''',''''PIG26004493'''',''''PIG26004494'''',''''PIG26004496'''',''''PIG26004497'''',''''PIG26004498'''',''''PIG26004499'''',''''PIG26004501'''',''''PIG26004502'''',''''PIG26004506'''',''''PIG26004508'''',''''PIG26004510'''',''''PIG26004511'''',''''PIG26004512'''',''''PIG26004513'''',''''PIG26004515'''',''''PIG26004516'''',''''PIG26004518'''',''''PIG26004520'''',''''PIG26004524'''',''''PIG26004525'''',''''PIG26004528'''',''''PIG26004530'''',''''PIG26004532'''',''''PIG26004533'''',''''PIG26004537'''',''''PIG26004538'''',''''PIG26004539'''',''''PIG26004541'''',''''PIG26004542'''',''''PIG26004543'''',''''PIG26004545'''',''''PIG26004547'''',''''PIG26004548'''',''''PIG26004554'''',''''PIG26004556'''',''''PIG26004557'''',''''PIG26004558'''',''''PIG26004560'''',''''PIG26004562'''',''''PIG26004563'''',''''PIG26004564'''',''''PIG26004565'''',''''PIG26004566'''',''''PIG26004567'''',''''PIG26004568'''',''''PIG26004569''''\\);\")",
+      "Bash(echo \"SELECT COUNT\\(*\\) as total_paye FROM tickets t JOIN pesees p ON t.pesee_id = p.id WHERE t.statut = ''''PAYÉ'''' AND p.date_pesee < ''''2026-03-13'''';\")"
+    ]
+  }
+}

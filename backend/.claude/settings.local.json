@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const m = require\\(''@prisma/adapter-pg''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(npx prisma:*)",
+      "Bash(node_modules/.bin/zod --version)",
+      "Bash(npm list:*)",
+      "Bash(grep -n \"express-rate-limit\" \"/c/Users/Mohamed/Desktop/palme-ivoire-gestion/backend/src\"/**/*.ts)",
+      "Bash(grep -c \"^export\\\\|^import\" src/server.ts src/config/*.ts)",
+      "Bash(node -e \"const ts=require\\(''typescript''\\); const opts = ts.convertCompilerOptionsFromJson\\({''ignoreDeprecations'':''5.5''}, ''.''\\); console.log\\(JSON.stringify\\(opts.errors.map\\(e=>e.messageText\\)\\)\\)\")",
+      "Bash(node -e \"try { require\\(''prisma/config''\\); console.log\\(''ok''\\) } catch\\(e\\) { console.log\\(e.message\\) }\")",
+      "Bash(node -e \"const m = require\\(''''prisma''''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node -e \"const m = require\\(''prisma/config''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node -e \"const d=require\\(''''/dev/stdin''''\\); console.log\\(JSON.stringify\\({deps: Object.keys\\(d.dependencies||{}\\), devDeps: Object.keys\\(d.devDependencies||{}\\)}, null, 2\\)\\)\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

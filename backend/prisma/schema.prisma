@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum StatutTicket {
+  EN_ATTENTE
+  VALIDÉ
+  PAYÉ
+  REJETÉ
+}
+
+enum ModePaiement {
+  VIREMENT
+  ESPÈCES
+  CHÈQUE
+  AUTRE
+}
+
+enum RoleUtilisateur {
+  ADMIN
+  SUPERVISEUR
+  OPERATEUR
+}
+
+enum SyncStatus {
+  SUCCÈS
+  ERREUR
+  PARTIEL
+}
+
+// ─── Tables ──────────────────────────────────────────────
+
+
+model Fournisseur {
+  id           Int       @id @default(autoincrement())
+  codeGespont  String    @unique @map("code_gespont") @db.VarChar(50)
+  nom          String    @db.VarChar(255)
+  contact      String?   @db.VarChar(100)
+  adresse      String?
+  actif        Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  pesees     Pesee[]
+  paiements  Paiement[]
+
+  @@map("fournisseurs")
+}
+
+model Pesee {
+  id            Int       @id @default(autoincrement())
+  gespontId     String    @unique @map("gespont_id") @db.VarChar(100)
+  numeroTicket  String?   @map("numero_ticket") @db.VarChar(50)
+  fournisseurId Int       @map("fournisseur_id")
+  produit       String?   @db.VarChar(255)
+  poidsBrut     Decimal   @map("poids_brut") @db.Decimal(10, 2)
+  tare          Decimal   @db.Decimal(10, 2)
+  poidsNet      Decimal   @map("poids_net") @db.Decimal(10, 2)
+  datePesee     DateTime  @map("date_pesee")
+  vehicule      String?   @db.VarChar(50)
+  mouvement     String?   @db.VarChar(20)
+  prCode        String?   @map("pr_code") @db.VarChar(50)
+  rawJson       Json?     @map("raw_json")
+  syncedAt      DateTime  @default(now()) @map("synced_at")
+
+  fournisseur Fournisseur @relation(fields: [fournisseurId], references: [id])
+  ticket      Ticket?
+
+  @@index([numeroTicket])
+  @@index([datePesee])
+  @@map("pesees")
+}
+
+model Ticket {
+  id              Int           @id @default(autoincrement())
+  peseeId         Int           @unique @map("pesee_id")
+  statut          StatutTicket  @default(EN_ATTENTE)
+  montant         Decimal?      @db.Decimal(12, 2)
+  prixUnitaire    Decimal?      @map("prix_unitaire") @db.Decimal(10, 2)
+  dateValidation  DateTime?     @map("date_validation")
+  datePaiement    DateTime?     @map("date_paiement")
+  paiementId      Int?          @map("paiement_id")
+  notes           String?
+  modifiePar      Int?          @map("modifie_par")
+
+  pesee     Pesee      @relation(fields: [peseeId], references: [id])
+  paiement  Paiement?  @relation(fields: [paiementId], references: [id])
+  modificateur User?   @relation("TicketModifier", fields: [modifiePar], references: [id])
+
+  @@map("tickets")
+}
+
+model Paiement {
+  id            Int           @id @default(autoincrement())
+  fournisseurId Int           @map("fournisseur_id")
+  montantTotal  Decimal       @map("montant_total") @db.Decimal(14, 2)
+  datePaiement  DateTime      @map("date_paiement")
+  modePaiement  ModePaiement  @map("mode_paiement")
+  reference     String        @unique @db.VarChar(100)
+  creePar       Int           @map("cree_par")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  fournisseur Fournisseur @relation(fields: [fournisseurId], references: [id])
+  createur    User        @relation("PaiementCreator", fields: [creePar], references: [id])
+  tickets     Ticket[]
+
+  @@map("paiements")
+}
+
+model User {
+  id           Int               @id @default(autoincrement())
+  nom          String            @db.VarChar(100)
+  email        String            @unique @db.VarChar(255)
+  passwordHash String            @map("password_hash") @db.VarChar(255)
+  role         RoleUtilisateur   @default(OPERATEUR)
+  actif        Boolean           @default(true)
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  ticketsModifies  Ticket[]    @relation("TicketModifier")
+  paiementsCrees   Paiement[]  @relation("PaiementCreator")
+
+  @@map("users")
+}
+
+model SyncLog {
+  id              Int        @id @default(autoincrement())
+  timestamp       DateTime   @default(now())
+  status          SyncStatus
+  recordsFetched  Int        @default(0) @map("records_fetched")
+  recordsInserted Int        @default(0) @map("records_inserted")
+  recordsSkipped  Int        @default(0) @map("records_skipped")
+  errorMessage    String?    @map("error_message")
+  durationMs      Int?       @map("duration_ms")
+
+  @@map("sync_logs")
+}
+
