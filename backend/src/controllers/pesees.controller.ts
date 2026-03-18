@@ -191,18 +191,17 @@ export async function getPeseesGroupedController(req: Request, res: Response): P
       return d.toISOString().slice(0, 10);
     }
 
-    const map = new Map<string, { periode: string; total: number; entreesCount: number; sortiesCount: number; rejetsCount: number; entreesKg: number; sortiesKg: number; rejetsKg: number }>();
+    const map = new Map<string, { periode: string; total: number; entreesCount: number; sortiesCount: number; entreesKg: number; sortiesKg: number }>();
 
     for (const r of records) {
       const key = periodKey(new Date(r.datePesee));
-      if (!map.has(key)) map.set(key, { periode: key, total: 0, entreesCount: 0, sortiesCount: 0, rejetsCount: 0, entreesKg: 0, sortiesKg: 0, rejetsKg: 0 });
+      if (!map.has(key)) map.set(key, { periode: key, total: 0, entreesCount: 0, sortiesCount: 0, entreesKg: 0, sortiesKg: 0 });
       const g = map.get(key)!;
       g.total++;
       const mv = r.mouvement ?? undefined;
       const kg = Number(r.poidsNet ?? 0);
       if (mv === 'ENTREE') { g.entreesCount++; g.entreesKg += kg; }
       if (mv === 'SORTIE') { g.sortiesCount++; g.sortiesKg += kg; }
-      if (mv === 'REJET')  { g.rejetsCount++;  g.rejetsKg  += kg; }
     }
 
     const result = [...map.values()].sort((a, b) => b.periode.localeCompare(a.periode));

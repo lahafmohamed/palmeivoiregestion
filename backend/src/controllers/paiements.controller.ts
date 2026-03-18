@@ -43,14 +43,14 @@ export async function createPaiementController(req: Request, res: Response): Pro
         );
       }
 
-      // 2. Vérifier qu'aucun ticket n'est déjà PAYÉ ou REJETÉ
+      // 2. Vérifier qu'aucun ticket n'est déjà PAYÉ
       const invalidTickets = tickets.filter(
-        (t) => t.statut === 'PAYÉ' || t.statut === 'REJETÉ'
+        (t) => t.statut === 'PAYÉ'
       );
 
       if (invalidTickets.length > 0) {
         throw new Error(
-          `${invalidTickets.length} ticket(s) sont déjà payés ou rejetés.`
+          `${invalidTickets.length} ticket(s) sont déjà payés.`
         );
       }
 

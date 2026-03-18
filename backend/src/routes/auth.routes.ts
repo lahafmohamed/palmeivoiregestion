@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { loginController, registerController, getMeController } from '../controllers/auth.controller.js';
+import { loginController, registerController, getMeController, changePasswordController } from '../controllers/auth.controller.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = Router();
@@ -12,5 +12,8 @@ router.post('/register', authenticate, authorize('ADMIN'), registerController);
 
 // GET /api/auth/me - Protégé (tous les users authentifiés)
 router.get('/me', authenticate, getMeController);
+
+// PATCH /api/auth/change-password - Protégé
+router.patch('/change-password', authenticate, changePasswordController);
 
 export default router;

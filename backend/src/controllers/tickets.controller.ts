@@ -8,10 +8,9 @@ import {
 
 // Mappings des transitions autorisées
 const allowedTransitions: Record<string, string[]> = {
-  EN_ATTENTE: ['VALIDÉ', 'REJETÉ'],
-  VALIDÉ: ['PAYÉ', 'REJETÉ', 'EN_ATTENTE'],
-  PAYÉ: ['EN_ATTENTE'],   // correction d'erreur
-  REJETÉ: ['EN_ATTENTE'], // réouverture
+  EN_ATTENTE: ['VALIDÉ'],
+  VALIDÉ: ['PAYÉ', 'EN_ATTENTE'],
+  PAYÉ: ['EN_ATTENTE'],
 };
 
 // GET /api/tickets — Liste paginée filtrable

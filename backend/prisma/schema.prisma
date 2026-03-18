@@ -19,7 +19,6 @@ enum StatutTicket {
   EN_ATTENTE
   VALIDÉ
   PAYÉ
-  REJETÉ
 }
 
 enum ModePaiement {

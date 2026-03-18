@@ -97,10 +97,7 @@ export async function syncPeseesFromGespont(dateDebut?: Date, dateFin?: Date): P
 
         const poidsNet = calculateNetWeight(peseeGespont);
 
-        // Règle métier : PR_CODE = "1002" + ENTREE → REJET
-        const mouvement = (peseeGespont.PR_CODE === '1002' && peseeGespont.PS_MOUVEMENT === 'ENTREE')
-          ? 'REJET'
-          : (peseeGespont.PS_MOUVEMENT || null);
+        const mouvement = peseeGespont.PS_MOUVEMENT || null;
 
         const exists = await db.pesee.findFirst({ where: { gespontId: peseeGespont.PS_CODE }, select: { id: true } });
 

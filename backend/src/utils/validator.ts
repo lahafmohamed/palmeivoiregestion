@@ -25,11 +25,11 @@ export const peseeFiltersSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
   fournisseurId: z.coerce.number().int().optional(),
   produit: z.string().optional(),
-  statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ', 'REJETÉ']).optional(),
+  statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ']).optional(),
   dateDebut: z.string().datetime().optional(),
   dateFin: z.string().datetime().optional(),
   search: z.string().optional(),
-  mouvement: z.enum(['ENTREE', 'SORTIE', 'REJET']).optional(),
+  mouvement: z.enum(['ENTREE', 'SORTIE']).optional(),
 });
 
 export type PeseeFiltersInput = z.infer<typeof peseeFiltersSchema>;
@@ -50,14 +50,14 @@ export type UpdateFournisseurInput = z.infer<typeof updateFournisseurSchema>;
 export const ticketFiltersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(500).default(20),
-  statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ', 'REJETÉ']).optional(),
+  statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ']).optional(),
   fournisseurId: z.coerce.number().int().optional(),
 });
 
 export type TicketFiltersInput = z.infer<typeof ticketFiltersSchema>;
 
 export const updateTicketStatusSchema = z.object({
-  statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ', 'REJETÉ']),
+  statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ']),
 });
 
 export type UpdateTicketStatusInput = z.infer<typeof updateTicketStatusSchema>;

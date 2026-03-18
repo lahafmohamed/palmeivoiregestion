@@ -130,6 +130,35 @@ export async function registerController(req: Request, res: Response): Promise<v
   }
 }
 
+// PATCH /api/auth/change-password (protégé)
+export async function changePasswordController(req: Request, res: Response): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Non authentifié' });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      res.status(400).json({ error: 'Données invalides', details: 'Le nouveau mot de passe doit faire au moins 6 caractères' });
+      return;
+    }
+
+    const user = await db.user.findUnique({ where: { id: req.user.id } });
+    if (!user) { res.status(404).json({ error: 'Utilisateur introuvable' }); return; }
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) { res.status(401).json({ error: 'Mot de passe actuel incorrect' }); return; }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await db.user.update({ where: { id: req.user.id }, data: { passwordHash: newHash } });
+
+    res.json({ message: 'Mot de passe mis à jour avec succès' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Erreur inconnue' });
+  }
+}
+
 // GET /api/auth/me (protégé)
 export async function getMeController(req: Request, res: Response): Promise<void> {
   try {
