@@ -23,7 +23,8 @@
       "Bash(npx tsx -e \":*)",
       "Bash(psql \"postgresql://postgres:admin@localhost:5432/palme-ivoire-gestion\" -c \"SELECT id, email, nom, role FROM users;\")",
       "Bash(node --input-type=module:*)",
-      "Bash(psql \"postgresql://postgres:admin@localhost:5432/palme-ivoire-gestion\" -f \"c:/Users/Mohamed/Desktop/palme-ivoire-gestion/backend/reset-pwd.sql\")"
+      "Bash(psql \"postgresql://postgres:admin@localhost:5432/palme-ivoire-gestion\" -f \"c:/Users/Mohamed/Desktop/palme-ivoire-gestion/backend/reset-pwd.sql\")",
+      "Bash(psql \"postgresql://postgres:admin@localhost:5432/palme-ivoire-gestion\" -c \"INSERT INTO users \\(nom, email, password_hash, role, actif, created_at\\) VALUES \\(''Tech'', ''tech@palmeivoire.com'', ''$2b$10$NUeeojfCsPsGq0KvEPlS7O0yN5gurtMBxbP7YZvYIManDX.SiOf1y'', ''OPERATEUR'', true, NOW\\(\\)\\) ON CONFLICT \\(email\\) DO NOTHING RETURNING id, email, role;\")"
     ]
   }
 }

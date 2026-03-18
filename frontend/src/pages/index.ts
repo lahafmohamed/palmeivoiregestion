@@ -1,0 +1,7 @@
+export { Dashboard } from './Dashboard'
+export { Admin } from './Admin'
+export { Fournisseurs } from './Fournisseurs'
+export { Login } from './Login'
+export { Paiements } from './Paiements'
+export { Pesees } from './Pesees'
+export { Tickets } from './Tickets'
