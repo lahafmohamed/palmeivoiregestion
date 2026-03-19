@@ -376,7 +376,7 @@ export function Paiements() {
   const [monthOffset, setMonthOffset] = useState(0) // 0 = mois courant
   const [pesees, setPesees] = useState<Pesee[]>([])
   const [total, setTotal] = useState(0)
-  const [monthStats, setMonthStats] = useState({ enAttenteCount: 0, enAttenteKg: 0, payeCount: 0, payeKg: 0 })
+  const [monthStats, setMonthStats] = useState({ enAttenteCount: 0, enAttenteKg: 0, payeCount: 0, payeKg: 0, payeMontant: 0 })
   const [page, setPage] = useState(1)
   const pages = Math.ceil(total / 100)
   const [loading, setLoading] = useState(true)
@@ -443,6 +443,7 @@ export function Paiements() {
     setSelected(new Set())
 
     const params = new URLSearchParams({ page: String(page), limit: '100', dateDebut, dateFin })
+    params.set('mouvement', 'ENTREE')
     if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
     if (statut !== 'TOUS') params.set('statut', statut)
     if (fournisseurId) params.set('fournisseurId', String(fournisseurId))
@@ -458,6 +459,7 @@ export function Paiements() {
             enAttenteKg:    Number(s.enAttenteKg    ?? 0),
             payeCount:      Number(s.payeCount      ?? 0),
             payeKg:         Number(s.payeKg         ?? 0),
+            payeMontant:    Number(s.payeMontant    ?? 0),
           })
         }
       })
@@ -530,13 +532,14 @@ export function Paiements() {
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">En attente</p>
-            <p className="mt-1 text-2xl font-bold text-yellow-600">{monthStats.enAttenteCount}</p>
-            <p className="text-xs text-muted-foreground">{fmt(monthStats.enAttenteKg / 1000, 1)} T</p>
+            <p className="mt-1 text-2xl font-bold text-yellow-600">{fmt(monthStats.enAttenteKg / 1000, 1)} T</p>
+            <p className="text-xs text-muted-foreground">{monthStats.enAttenteCount} pesées</p>
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Payé</p>
-            <p className="mt-1 text-2xl font-bold text-green-700">{monthStats.payeCount}</p>
-            <p className="text-xs text-muted-foreground">{fmt(monthStats.payeKg / 1000, 1)} T</p>
+            <p className="mt-1 text-2xl font-bold text-green-700">{fmt(monthStats.payeKg / 1000, 1)} T</p>
+            <p className="text-xs text-muted-foreground">{monthStats.payeCount} pesées</p>
+            <p className="text-xs font-semibold text-green-800">{fmt(monthStats.payeMontant, 0)} FCFA</p>
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Taux payé</p>
@@ -700,6 +703,8 @@ export function Paiements() {
                   const p1 = splitDT(raw?.PS_DATEHEUREP1)
                   const p2 = splitDT(raw?.PS_DATEHEUREP2 ?? p.datePesee)
                   const annulee = raw?.PS_ANNULEE === 1
+                  const fournisseurNomAffiche = p.fournisseur?.nom ?? raw?.PS_FOURNISSEUR ?? '—'
+                  const fournisseurCodeAffiche = p.fournisseur?.codeGespont ?? raw?.FO_CODE ?? '—'
 
                   const cellMap: Record<ColName, React.ReactNode> = {
                     'Sélection': canCreatePayment && isSelectable ? (
@@ -715,10 +720,10 @@ export function Paiements() {
                     ),
                     'Date': <span className="whitespace-nowrap">{fmtDate(p.datePesee)}</span>,
                     'Fournisseur': (
-                      <span className="whitespace-nowrap font-medium">{p.fournisseur?.nom ?? '—'}</span>
+                      <span className="whitespace-nowrap font-medium">{fournisseurNomAffiche}</span>
                     ),
                     'Code Fournisseur': (
-                      <span className="font-mono text-muted-foreground">{p.fournisseur?.codeGespont ?? '—'}</span>
+                      <span className="font-mono text-muted-foreground">{fournisseurCodeAffiche}</span>
                     ),
                     'PP Code': <span className="font-mono text-muted-foreground">{p.numeroTicket ?? '—'}</span>,
                     'PS Code': <span className="font-mono text-muted-foreground">{p.gespontId}</span>,
@@ -740,12 +745,12 @@ export function Paiements() {
                     'Heure P2': <span className="whitespace-nowrap">{p2.heure}</span>,
                     'Prix/kg': (
                       <span className="block text-right font-mono">
-                        {statutVal === 'PAYÉ' && p.ticket?.prixUnitaire ? fmt(p.ticket.prixUnitaire, 2) : '—'}
+                        {p.ticket?.prixUnitaire ? fmt(p.ticket.prixUnitaire, 2) : '—'}
                       </span>
                     ),
                     'Montant': (
                       <span className="block text-right font-mono font-semibold">
-                        {statutVal === 'PAYÉ' && p.ticket?.montant ? fmt(p.ticket.montant, 0) : '—'}
+                        {p.ticket?.montant ? fmt(p.ticket.montant, 0) : '—'}
                       </span>
                     ),
                     'Dernier prix': (
