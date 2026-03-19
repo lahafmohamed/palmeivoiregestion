@@ -16,7 +16,7 @@ export async function createPaiementController(req: Request, res: Response): Pro
     }
 
     // Valider les données
-    const { ticketIds, modePaiement, reference } = createPaiementSchema.parse(req.body);
+    const { ticketIds, modePaiement, reference, prixUnitaire } = createPaiementSchema.parse(req.body);
 
     // Transaction Prisma: tout passe ou rien ne passe
     const result = await db.$transaction(async (tx) => {
@@ -74,11 +74,9 @@ export async function createPaiementController(req: Request, res: Response): Pro
 
       const fournisseurId = Array.from(fournisseurIds)[0];
 
-      // 4. Calculer le montant total (en tonnes = poidsNet / 1000)
-      const montantTotal = tickets.reduce((sum, ticket) => {
-        const poidsNetEnTonnes = Number(ticket.pesee.poidsNet) / 1000;
-        return sum + poidsNetEnTonnes;
-      }, 0);
+      // 4. Calculer le montant total = poids net (kg) × prix unitaire (par kg)
+      const totalPoidsKg = tickets.reduce((sum, ticket) => sum + Number(ticket.pesee.poidsNet), 0);
+      const montantTotal = totalPoidsKg * prixUnitaire;
 
       // 5. Vérifier l'unicité de la référence
       const existingRef = await tx.paiement.findUnique({
@@ -101,20 +99,22 @@ export async function createPaiementController(req: Request, res: Response): Pro
         },
       });
 
-      // 7. Mettre à jour tous les tickets en PAYÉ
-      await tx.ticket.updateMany({
-        where: {
-          id: {
-            in: ticketIds,
+      // 7. Mettre à jour chaque ticket en PAYÉ avec son montant calculé
+      for (const ticket of tickets) {
+        const poidsKg = Number(ticket.pesee.poidsNet);
+        const montant = poidsKg * prixUnitaire;
+        await tx.ticket.update({
+          where: { id: ticket.id },
+          data: {
+            statut: 'PAYÉ',
+            paiementId: paiement.id,
+            datePaiement: new Date(),
+            modifiePar: req.user!.id,
+            prixUnitaire: prixUnitaire.toString(),
+            montant: montant.toString(),
           },
-        },
-        data: {
-          statut: 'PAYÉ',
-          paiementId: paiement.id,
-          datePaiement: new Date(),
-          modifiePar: req.user!.id,
-        },
-      });
+        });
+      }
 
       // Retourner le paiement créé avec les tickets
       const paiementComplet = await tx.paiement.findUnique({

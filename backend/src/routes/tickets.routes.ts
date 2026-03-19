@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import {
   getTicketsController,
   updateTicketStatusController,
@@ -21,7 +21,16 @@ router.patch(
   bulkValidateTicketsController
 );
 
+// Middleware : inverser PAYÉ→EN_ATTENTE requiert ADMIN
+function guardReversal(req: Request, res: Response, next: NextFunction): void {
+  if (req.body?.statut === 'EN_ATTENTE') {
+    authorize('ADMIN')(req, res, next);
+    return;
+  }
+  next();
+}
+
 // PATCH /api/tickets/:id — Changer le statut
-router.patch('/:id', updateTicketStatusController);
+router.patch('/:id', guardReversal, updateTicketStatusController);
 
 export default router;

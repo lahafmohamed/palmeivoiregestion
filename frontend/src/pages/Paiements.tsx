@@ -1,30 +1,72 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 import type { Fournisseur } from '@/types'
-import { ChevronLeft, ChevronRight, Loader2, Search, X, CreditCard, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Search, X, CreditCard, ChevronDown, Check, Columns2 } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface RawJson {
+  PS_SITE?: string
+  PS_DATEHEUREP1?: string
+  PS_DATEHEUREP2?: string
+  PS_ANNULEE?: number
+  PS_MOUVEMENT?: string
+  PS_FOURNISSEUR?: string
+  PP_CODE?: string
+  PR_CODE?: string
+  FO_CODE?: string
+  [key: string]: unknown
+}
 
 interface Pesee {
   id: number
   gespontId: string
   numeroTicket: string | null
   produit: string | null
+  prCode: string | null
   poidsNet: number | string
   poidsBrut: number | string
   tare: number | string
   datePesee: string
   vehicule: string | null
   mouvement: string | null
+  rawJson?: RawJson | null
+  syncedAt?: string
   fournisseur?: Fournisseur
   ticket?: {
     id: number
     statut: string
     montant: number | string | null
+    prixUnitaire: number | string | null
+    dateValidation: string | null
+    datePaiement: string | null
+    notes: string | null
+    paiement?: {
+      createur?: { nom: string } | null
+      reference?: string
+      modePaiement?: string
+    } | null
   }
+  dernierPrix?: string | null
 }
 
-type StatutFilter = 'TOUS' | 'EN_ATTENTE' | 'VALIDÉ' | 'PAYÉ'
+type StatutFilter = 'TOUS' | 'EN_ATTENTE' | 'PAYÉ'
 
 const MODES = ['VIREMENT', 'ESPÈCES', 'CHÈQUE', 'AUTRE'] as const
 type Mode = (typeof MODES)[number]
@@ -34,7 +76,6 @@ const MODE_LABELS: Record<Mode, string> = {
 
 const STATUT_STYLE: Record<string, string> = {
   EN_ATTENTE: 'bg-yellow-100 text-yellow-800',
-  VALIDÉ:     'bg-blue-100 text-blue-800',
   PAYÉ:       'bg-green-100 text-green-800',
 }
 
@@ -51,36 +92,42 @@ function fmt(n: number | string, dec = 0) {
 function fmtDate(s: string) {
   return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
+function splitDT(iso?: string | null) {
+  if (!iso) return { date: '—', heure: '—' }
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString('fr-FR'),
+    heure: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+  }
+}
 
 const MONTH_FR = [
   'Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre',
 ]
 
-const TRANSITIONS: Record<string, string[]> = {
-  EN_ATTENTE: [],
-  VALIDÉ:     ['EN_ATTENTE'],
-  PAYÉ:       ['EN_ATTENTE'],
-}
+// Les transitions disponibles sont calculées dynamiquement selon le rôle (voir composant Paiements)
 
 const STATUT_LABEL: Record<string, string> = {
-  EN_ATTENTE: 'En attente', VALIDÉ: 'Validé', PAYÉ: 'Payé',
+  EN_ATTENTE: 'En attente', PAYÉ: 'Payé',
 }
 
 function StatutChanger({
   ticketId,
   statut,
+  allowedTransitions,
   onChanged,
 }: {
   ticketId: number
   statut: string
+  allowedTransitions: Record<string, string[]>
   onChanged: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errMsg, setErrMsg] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
-  const next = TRANSITIONS[statut] ?? []
+  const next = allowedTransitions[statut] ?? []
 
   useEffect(() => {
     if (!open) return
@@ -143,8 +190,7 @@ function StatutChanger({
             >
               <span className={`inline-block h-2 w-2 rounded-full ${
                 s === 'EN_ATTENTE' ? 'bg-yellow-400' :
-                s === 'PAYÉ' ? 'bg-green-500' :
-                s === 'VALIDÉ' ? 'bg-blue-400' : 'bg-red-400'
+                s === 'PAYÉ' ? 'bg-green-500' : 'bg-red-400'
               }`} />
               {STATUT_LABEL[s]}
             </button>
@@ -168,10 +214,13 @@ function CreerPaiementModal({
 }) {
   const [mode, setMode] = useState<Mode>('VIREMENT')
   const [reference, setReference] = useState('')
+  const [prixKg, setPrixKg] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const totalKg = pesees.reduce((s, p) => s + Number(p.poidsNet), 0)
+  const prixNum = parseFloat(prixKg) || 0
+  const montantTotal = totalKg * prixNum
   const ticketIds = pesees.map((p) => p.ticket!.id)
 
   // Group by fournisseur for display
@@ -189,10 +238,11 @@ function CreerPaiementModal({
 
   const handleSubmit = async () => {
     if (!reference.trim()) { setError('La référence est requise'); return }
+    if (prixNum <= 0) { setError('Le prix par kg est requis'); return }
     setSubmitting(true)
     setError(null)
     try {
-      await api.post('/paiements', { ticketIds, modePaiement: mode, reference: reference.trim() })
+      await api.post('/paiements', { ticketIds, modePaiement: mode, reference: reference.trim(), prixUnitaire: prixNum })
       onDone()
     } catch (e: any) {
       setError(e?.response?.data?.details ?? e?.response?.data?.error ?? 'Erreur')
@@ -236,6 +286,31 @@ function CreerPaiementModal({
           </div>
 
           <div>
+            <label className="mb-1.5 block text-sm font-medium">Prix par kg (FCFA)</label>
+            <input
+              type="number"
+              value={prixKg}
+              onChange={(e) => setPrixKg(e.target.value)}
+              placeholder="Ex : 150"
+              min="0"
+              step="any"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+          </div>
+
+          {prixNum > 0 && (
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+              <div className="flex justify-between text-sm font-semibold text-blue-800">
+                <span>Montant total</span>
+                <span>{fmt(montantTotal, 0)} FCFA</span>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                {fmt(totalKg)} kg × {fmt(prixNum, 0)} FCFA/kg
+              </p>
+            </div>
+          )}
+
+          <div>
             <label className="mb-1.5 block text-sm font-medium">Référence</label>
             <input
               value={reference}
@@ -252,7 +327,7 @@ function CreerPaiementModal({
           <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">Annuler</button>
           <button
             onClick={handleSubmit}
-            disabled={!reference.trim() || submitting}
+            disabled={!reference.trim() || prixNum <= 0 || submitting}
             className="flex items-center gap-2 rounded-md bg-green-700 px-5 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
@@ -264,9 +339,39 @@ function CreerPaiementModal({
   )
 }
 
+// ─── Colonnes dynamiques ─────────────────────────────────────────────────────
+
+const ALL_COLS = [
+  'Sélection', 'Date', 'Fournisseur', 'Code Fournisseur',
+  'PP Code', 'PS Code', 'PR Code',
+  'Site', 'Produit', 'Véhicule', 'Mouvement',
+  'Poids P1 (kg)', 'Poids P2 (kg)', 'Net (kg)',
+  'Date P1', 'Heure P1', 'Date P2', 'Heure P2',
+  'Prix/kg', 'Montant', 'Dernier prix',
+  'Réf. paiement', 'Mode paiement', 'Confirmé par',
+  'Annulée', 'Statut',
+] as const
+
+type ColName = (typeof ALL_COLS)[number]
+
+const FIXED_COLS: ColName[] = ['Sélection', 'Statut']
+
+const DEFAULT_COLS = new Set<ColName>([
+  'Sélection', 'Date', 'Fournisseur', 'PS Code', 'Produit',
+  'Mouvement', 'Net (kg)', 'Prix/kg', 'Montant', 'Dernier prix', 'Statut',
+])
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export function Paiements() {
+  const { user } = useAuth()
+  const canCreatePayment = user?.role === 'ADMIN' || user?.role === 'SUPERVISEUR'
+  const canReverseStatus = user?.role === 'ADMIN'
+  const transitions: Record<string, string[]> = {
+    EN_ATTENTE: [],
+    PAYÉ: canReverseStatus ? ['EN_ATTENTE'] : [],
+  }
+
   const today = new Date()
   const [monthOffset, setMonthOffset] = useState(0) // 0 = mois courant
   const [pesees, setPesees] = useState<Pesee[]>([])
@@ -276,6 +381,8 @@ export function Paiements() {
   const pages = Math.ceil(total / 100)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fournisseurs, setFournisseurs] = useState<{ id: number; nom: string }[]>([])
+  const [fournisseurId, setFournisseurId] = useState<number | undefined>()
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statut, setStatut] = useState<StatutFilter>('TOUS')
@@ -283,6 +390,17 @@ export function Paiements() {
   const [showModal, setShowModal] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const reload = () => setReloadKey(k => k + 1)
+
+  const [visibleCols, setVisibleCols] = useState<Set<ColName>>(new Set(DEFAULT_COLS))
+  const toggleCol = (col: ColName) => {
+    if (FIXED_COLS.includes(col)) return
+    setVisibleCols((prev) => {
+      const next = new Set(prev)
+      next.has(col) ? next.delete(col) : next.add(col)
+      return next
+    })
+  }
+  const activeCols = ALL_COLS.filter((c) => visibleCols.has(c))
 
   // Calcul du mois affiché
   const displayDate = useMemo(() => {
@@ -302,13 +420,20 @@ export function Paiements() {
     return d.toISOString().slice(0, 10) + 'T23:59:59.999Z'
   }, [displayDate])
 
-  // Debounce search → reset page quand la recherche change
+  // Fetch fournisseurs
+  useEffect(() => {
+    api.get<{ id: number; nom: string }[]>('/fournisseurs')
+      .then(r => setFournisseurs(r.data))
+      .catch(() => {})
+  }, [])
+
+  // Debounce search + produit → reset page quand la recherche change
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350)
     return () => clearTimeout(t)
   }, [search])
 
-  useEffect(() => { setPage(1) }, [debouncedSearch, statut, dateDebut, dateFin])
+  useEffect(() => { setPage(1) }, [debouncedSearch, statut, dateDebut, dateFin, fournisseurId])
 
   // Chargement unique — toutes les dépendances explicites, pas de useCallback
   useEffect(() => {
@@ -320,6 +445,7 @@ export function Paiements() {
     const params = new URLSearchParams({ page: String(page), limit: '100', dateDebut, dateFin })
     if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
     if (statut !== 'TOUS') params.set('statut', statut)
+    if (fournisseurId) params.set('fournisseurId', String(fournisseurId))
 
     api.get<{ data: Pesee[]; pagination: { total: number }; stats?: any }>(`/pesees?${params}`)
       .then((r) => {
@@ -339,7 +465,7 @@ export function Paiements() {
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
-  }, [page, debouncedSearch, statut, dateDebut, dateFin, reloadKey])
+  }, [page, debouncedSearch, statut, dateDebut, dateFin, fournisseurId, reloadKey])
 
 
 
@@ -428,7 +554,7 @@ export function Paiements() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="PS code, fournisseur, nom..."
+            placeholder="PS code, fournisseur, produit, code produit..."
             className="w-full rounded-md border bg-background py-2 pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
           />
           {search && (
@@ -439,7 +565,7 @@ export function Paiements() {
         </div>
 
         <div className="flex overflow-hidden rounded-md border text-sm">
-          {(['TOUS', 'EN_ATTENTE', 'PAYÉ', 'VALIDÉ'] as StatutFilter[]).map((s) => (
+          {(['TOUS', 'EN_ATTENTE', 'PAYÉ'] as StatutFilter[]).map((s) => (
             <button
               key={s}
               onClick={() => setStatut(s)}
@@ -447,14 +573,25 @@ export function Paiements() {
                 statut === s ? 'bg-green-800 text-white' : 'bg-background hover:bg-muted'
               }`}
             >
-              {s === 'TOUS' ? 'Tous' : s === 'EN_ATTENTE' ? 'En attente' : s === 'PAYÉ' ? 'Payé' : 'Validé'}
+              {s === 'TOUS' ? 'Tous' : s === 'EN_ATTENTE' ? 'En attente' : 'Payé'}
             </button>
           ))}
         </div>
+
+        {/* Fournisseur */}
+        <select
+          value={fournisseurId ?? ''}
+          onChange={e => setFournisseurId(e.target.value ? Number(e.target.value) : undefined)}
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-green-600"
+        >
+          <option value="">Tous les fournisseurs</option>
+          {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+        </select>
+
       </div>
 
       {/* Barre d'action flottante quand sélection */}
-      {selected.size > 0 && (
+      {canCreatePayment && selected.size > 0 && (
         <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3">
           <span className="text-sm font-medium text-green-800">
             {selected.size} pesée{selected.size > 1 ? 's' : ''} sélectionnée{selected.size > 1 ? 's' : ''} — {fmt(selectedKg / 1000, 2)} T
@@ -477,106 +614,197 @@ export function Paiements() {
       {error && <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {/* Table */}
-      <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-green-700 text-white text-xs uppercase tracking-wide">
-              <tr>
-                <th className="px-3 py-3 text-center w-8">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    className="accent-white cursor-pointer"
-                    title="Sélectionner toutes les pesées en attente"
-                  />
-                </th>
-                <th className="px-3 py-3 text-left">Date</th>
-                <th className="px-3 py-3 text-left">Fournisseur</th>
-                <th className="px-3 py-3 text-left">PS Code</th>
-                <th className="px-3 py-3 text-left">Produit</th>
-                <th className="px-3 py-3 text-left">Mouvement</th>
-                <th className="px-3 py-3 text-right">Net (kg)</th>
-                <th className="px-3 py-3 text-left">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-green-800 hover:bg-green-800">
+                {activeCols.map((col) => {
+                  if (col === 'Sélection') {
+                    return (
+                      <TableHead key={col} className="w-8 text-center text-white">
+                        {canCreatePayment && (
+                          <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={toggleAll}
+                            className="accent-white cursor-pointer"
+                            title="Sélectionner toutes les pesées en attente"
+                          />
+                        )}
+                      </TableHead>
+                    )
+                  }
+                  const isRight = ['Poids P1 (kg)', 'Poids P2 (kg)', 'Net (kg)', 'Prix/kg', 'Montant', 'Dernier prix'].includes(col)
+                  return (
+                    <TableHead
+                      key={col}
+                      className={`whitespace-nowrap text-xs font-semibold text-white ${isRight ? 'text-right' : ''}`}
+                    >
+                      {col}
+                    </TableHead>
+                  )
+                })}
+
+                {/* Sélecteur de colonnes */}
+                <TableHead className="w-8 bg-green-800 p-0 text-white">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={<button className="flex h-full w-full items-center justify-center p-2 text-white opacity-70 hover:opacity-100 focus:outline-none" />}
+                    >
+                      <Columns2 className="h-4 w-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52 max-h-[70vh] overflow-y-auto">
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Afficher / masquer les colonnes
+                      </div>
+                      <DropdownMenuSeparator />
+                      {ALL_COLS.filter(c => c !== 'Sélection').map((col) => (
+                        <DropdownMenuItem
+                          key={col}
+                          onClick={() => toggleCol(col)}
+                          closeOnClick={false}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <span className={FIXED_COLS.includes(col) ? 'text-muted-foreground' : ''}>
+                            {col}
+                          </span>
+                          {visibleCols.has(col) && <Check className="h-3.5 w-3.5 shrink-0 text-green-700" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
               {pesees.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                <TableRow>
+                  <TableCell colSpan={activeCols.length + 1} className="py-12 text-center text-muted-foreground">
                     Aucune pesée pour {monthLabel}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
-                pesees.map((p, i) => {
+                pesees.map((p) => {
                   const isSelectable = p.ticket?.statut === 'EN_ATTENTE' && !!p.ticket?.id
                   const isSelected = selected.has(p.id)
                   const mv = p.mouvement ?? ''
                   const statutVal = p.ticket?.statut ?? 'EN_ATTENTE'
+
+                  const raw = p.rawJson as RawJson | null
+                  const p1 = splitDT(raw?.PS_DATEHEUREP1)
+                  const p2 = splitDT(raw?.PS_DATEHEUREP2 ?? p.datePesee)
+                  const annulee = raw?.PS_ANNULEE === 1
+
+                  const cellMap: Record<ColName, React.ReactNode> = {
+                    'Sélection': canCreatePayment && isSelectable ? (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleRow(p.id, isSelectable)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="accent-green-700 cursor-pointer"
+                      />
+                    ) : (
+                      <span className="block h-4 w-4 mx-auto" />
+                    ),
+                    'Date': <span className="whitespace-nowrap">{fmtDate(p.datePesee)}</span>,
+                    'Fournisseur': (
+                      <span className="whitespace-nowrap font-medium">{p.fournisseur?.nom ?? '—'}</span>
+                    ),
+                    'Code Fournisseur': (
+                      <span className="font-mono text-muted-foreground">{p.fournisseur?.codeGespont ?? '—'}</span>
+                    ),
+                    'PP Code': <span className="font-mono text-muted-foreground">{p.numeroTicket ?? '—'}</span>,
+                    'PS Code': <span className="font-mono text-muted-foreground">{p.gespontId}</span>,
+                    'PR Code': <span className="font-mono text-muted-foreground">{p.prCode ?? raw?.PR_CODE ?? '—'}</span>,
+                    'Site': <span className="whitespace-nowrap">{raw?.PS_SITE ?? '—'}</span>,
+                    'Produit': <span className="whitespace-nowrap">{p.produit ?? '—'}</span>,
+                    'Véhicule': <span className="font-mono">{p.vehicule ?? '—'}</span>,
+                    'Mouvement': mv ? (
+                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${MV_STYLE[mv] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {mv}
+                      </span>
+                    ) : <>{'—'}</>,
+                    'Poids P1 (kg)': <span className="block text-right font-mono">{fmt(p.poidsBrut)}</span>,
+                    'Poids P2 (kg)': <span className="block text-right font-mono">{fmt(p.tare)}</span>,
+                    'Net (kg)': <span className="block text-right font-mono font-bold text-green-800">{fmt(p.poidsNet)}</span>,
+                    'Date P1': <span className="whitespace-nowrap">{p1.date}</span>,
+                    'Heure P1': <span className="whitespace-nowrap">{p1.heure}</span>,
+                    'Date P2': <span className="whitespace-nowrap">{p2.date}</span>,
+                    'Heure P2': <span className="whitespace-nowrap">{p2.heure}</span>,
+                    'Prix/kg': (
+                      <span className="block text-right font-mono">
+                        {statutVal === 'PAYÉ' && p.ticket?.prixUnitaire ? fmt(p.ticket.prixUnitaire, 2) : '—'}
+                      </span>
+                    ),
+                    'Montant': (
+                      <span className="block text-right font-mono font-semibold">
+                        {statutVal === 'PAYÉ' && p.ticket?.montant ? fmt(p.ticket.montant, 0) : '—'}
+                      </span>
+                    ),
+                    'Dernier prix': (
+                      <span className="block text-right font-mono text-muted-foreground">
+                        {p.dernierPrix ? fmt(p.dernierPrix, 2) : '—'}
+                      </span>
+                    ),
+                    'Réf. paiement': (
+                      <span className="font-mono text-muted-foreground">
+                        {p.ticket?.paiement?.reference ?? '—'}
+                      </span>
+                    ),
+                    'Mode paiement': (
+                      <span>{p.ticket?.paiement?.modePaiement ?? '—'}</span>
+                    ),
+                    'Confirmé par': (
+                      <span className="text-muted-foreground">
+                        {p.ticket?.paiement?.createur?.nom ?? '—'}
+                      </span>
+                    ),
+                    'Annulée': (
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${annulee ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {annulee ? 'Oui' : 'Non'}
+                      </span>
+                    ),
+                    'Statut': p.ticket?.id ? (
+                      <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <StatutChanger
+                          ticketId={p.ticket.id}
+                          statut={statutVal}
+                          allowedTransitions={transitions}
+                          onChanged={reload}
+                        />
+                      </div>
+                    ) : (
+                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${STATUT_STYLE[statutVal] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {STATUT_LABEL[statutVal] ?? statutVal}
+                      </span>
+                    ),
+                  }
+
                   return (
-                    <tr
+                    <TableRow
                       key={p.id}
-                      onClick={() => toggleRow(p.id, isSelectable)}
-                      className={`transition-colors ${
+                      onClick={() => canCreatePayment && toggleRow(p.id, isSelectable)}
+                      className={`text-xs transition-colors ${
                         isSelectable ? 'cursor-pointer' : 'cursor-default'
-                      } ${
-                        isSelected ? 'bg-green-50' :
-                        i % 2 === 0 ? 'bg-background hover:bg-muted/30' : 'bg-muted/20 hover:bg-muted/40'
-                      }`}
+                      } ${isSelected ? 'bg-green-50 hover:bg-green-50' : ''}`}
                     >
-                      <td className="px-3 py-2.5 text-center">
-                        {isSelectable ? (
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleRow(p.id, isSelectable)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="accent-green-700 cursor-pointer"
-                          />
-                        ) : (
-                          <span className="block h-4 w-4 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">{fmtDate(p.datePesee)}</td>
-                      <td className="px-3 py-2.5 font-medium">
-                        <div>{p.fournisseur?.nom ?? '—'}</div>
-                        {p.fournisseur?.codeGespont && (
-                          <div className="text-xs text-muted-foreground font-mono">{p.fournisseur.codeGespont}</div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{p.gespontId}</td>
-                      <td className="px-3 py-2.5">{p.produit ?? '—'}</td>
-                      <td className="px-3 py-2.5">
-                        {mv ? (
-                          <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${MV_STYLE[mv] ?? 'bg-gray-100 text-gray-700'}`}>
-                            {mv}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-mono font-semibold">{fmt(p.poidsNet)}</td>
-                      <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                        {p.ticket?.id ? (
-                          <StatutChanger
-                            ticketId={p.ticket.id}
-                            statut={statutVal}
-                            onChanged={reload}
-                          />
-                        ) : (
-                          <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUT_STYLE[statutVal] ?? 'bg-gray-100 text-gray-600'}`}>
-                            {STATUT_LABEL[statutVal] ?? statutVal}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
+                      {activeCols.map((col) => (
+                        <TableCell key={col}>{cellMap[col]}</TableCell>
+                      ))}
+                      <TableCell />
+                    </TableRow>
                   )
                 })
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
 

@@ -17,10 +17,15 @@ export async function getPeseesController(req: Request, res: Response): Promise<
     }
 
     if (produit) {
-      where.produit = {
-        contains: produit,
-        mode: 'insensitive',
-      };
+      where.AND = [
+        ...(where.AND ?? []),
+        {
+          OR: [
+            { produit: { contains: produit, mode: 'insensitive' } },
+            { prCode: { contains: produit, mode: 'insensitive' } },
+          ],
+        },
+      ];
     }
 
     if (statut) {
@@ -40,12 +45,19 @@ export async function getPeseesController(req: Request, res: Response): Promise<
     }
 
     if (search) {
-      where.OR = [
-        { gespontId: { contains: search, mode: 'insensitive' } },
-        { numeroTicket: { contains: search, mode: 'insensitive' } },
-        { vehicule: { contains: search, mode: 'insensitive' } },
-        { fournisseur: { nom: { contains: search, mode: 'insensitive' } } },
-        { fournisseur: { codeGespont: { contains: search, mode: 'insensitive' } } },
+      where.AND = [
+        ...(where.AND ?? []),
+        {
+          OR: [
+            { gespontId: { contains: search, mode: 'insensitive' } },
+            { numeroTicket: { contains: search, mode: 'insensitive' } },
+            { vehicule: { contains: search, mode: 'insensitive' } },
+            { produit: { contains: search, mode: 'insensitive' } },
+            { prCode: { contains: search, mode: 'insensitive' } },
+            { fournisseur: { nom: { contains: search, mode: 'insensitive' } } },
+            { fournisseur: { codeGespont: { contains: search, mode: 'insensitive' } } },
+          ],
+        },
       ];
     }
 
@@ -82,7 +94,15 @@ export async function getPeseesController(req: Request, res: Response): Promise<
       where,
       include: {
         fournisseur: true,
-        ticket: true,
+        ticket: {
+          include: {
+            paiement: {
+              include: {
+                createur: { select: { nom: true } },
+              },
+            },
+          },
+        },
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -91,8 +111,31 @@ export async function getPeseesController(req: Request, res: Response): Promise<
       },
     });
 
+    // Pour chaque pesée, trouver le dernier prix payé à ce fournisseur
+    // dont la date de pesée est AVANT la date de pesée de cette ligne
+    const peseesWithDernierPrix = await Promise.all(
+      pesees.map(async (p) => {
+        const lastPaidTicket = await db.ticket.findFirst({
+          where: {
+            statut: 'PAYÉ',
+            prixUnitaire: { not: null },
+            pesee: {
+              fournisseurId: p.fournisseurId,
+              datePesee: { lt: p.datePesee },
+            },
+          },
+          orderBy: { pesee: { datePesee: 'desc' } },
+          select: { prixUnitaire: true },
+        });
+        return {
+          ...p,
+          dernierPrix: lastPaidTicket?.prixUnitaire?.toString() ?? null,
+        };
+      })
+    );
+
     res.json({
-      data: pesees,
+      data: peseesWithDernierPrix,
       pagination: {
         page,
         limit,

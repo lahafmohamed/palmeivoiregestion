@@ -155,15 +155,16 @@ function UserMenu({ user, onLogout, onChangePwd }: {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 export function Header() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [showChangePwd, setShowChangePwd] = useState(false)
 
-  const storedUser = localStorage.getItem('user')
-  const user: User | null = storedUser ? (JSON.parse(storedUser) as User) : null
+  const visibleNavItems = NAV_ITEMS.filter(item =>
+    item.to === '/admin' ? user?.role === 'ADMIN' : true
+  )
 
   const handleLogout = () => {
     logout()
@@ -193,7 +194,7 @@ export function Header() {
             <img src="/logoPalme.svg" alt="Palme Ivoire" className="h-40 w-auto" />
             <NavigationMenu className="hidden md:flex">
               <NavigationMenuList>
-                {NAV_ITEMS.map((item) => (
+                {visibleNavItems.map((item) => (
                   <NavigationMenuItem key={item.to}>
                     <NavigationMenuLink render={<Link to={item.to} />} data-active={pathname === item.to}>
                       {item.label}

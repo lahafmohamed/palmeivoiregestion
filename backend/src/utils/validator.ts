@@ -74,6 +74,7 @@ export const createPaiementSchema = z.object({
   ticketIds: z.array(z.number().int().positive()).min(1, 'Au moins un ticket est requis'),
   modePaiement: z.enum(['VIREMENT', 'ESPÈCES', 'CHÈQUE', 'AUTRE']),
   reference: z.string().min(1, 'La référence est requise').max(100),
+  prixUnitaire: z.number().positive('Le prix par kg est requis'),
 });
 
 export type CreatePaiementInput = z.infer<typeof createPaiementSchema>;

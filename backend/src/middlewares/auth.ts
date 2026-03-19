@@ -8,11 +8,22 @@ interface JwtPayloadExtended extends JwtPayload {
   role: string;
 }
 
-// Middleware d'authentification — temporairement désactivé
-export function authenticate(req: Request, _res: Response, next: NextFunction): void {
-  // Auth désactivée temporairement — user par défaut ADMIN
-  req.user = { id: 1, role: 'ADMIN' };
-  next();
+// Middleware d'authentification
+export function authenticate(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Token manquant' });
+    return;
+  }
+
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayloadExtended;
+    req.user = { id: payload.id, role: payload.role };
+    next();
+  } catch {
+    res.status(401).json({ error: 'Token invalide ou expiré' });
+  }
 }
 
 // Middleware optionnel pour vérifier un rôle spécifique

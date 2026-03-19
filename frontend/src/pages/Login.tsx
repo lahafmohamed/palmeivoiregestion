@@ -50,8 +50,7 @@ export function Login() {
 
     try {
       const response = await api.post<{ token: string; user: User }>('/auth/login', values)
-      login(response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
+      login(response.data.token, response.data.user)
       navigate(redirectPath, { replace: true })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Connexion impossible'

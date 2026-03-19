@@ -32,7 +32,7 @@ function App() {
     <TooltipProvider>
       <Router>
         <Routes>
-          {/* <Route path="/login" element={<Login />} /> */}
+          <Route path="/login" element={<Login />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>

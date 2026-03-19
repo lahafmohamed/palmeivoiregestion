@@ -20,8 +20,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Redirection /login désactivée temporairement
+// Redirection vers /login si token invalide/expiré
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem(AUTH_TOKEN_KEY)
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
 )

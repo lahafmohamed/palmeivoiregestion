@@ -9,6 +9,9 @@ export interface PeseesParams {
   dateFin?: string
   search?: string
   mouvement?: 'ENTREE' | 'SORTIE'
+  fournisseurId?: number
+  produit?: string
+  statut?: 'EN_ATTENTE' | 'PAYÉ'
 }
 
 const DEFAULT_PAGINATION = { page: 1, limit: 20, total: 0, pages: 0 }

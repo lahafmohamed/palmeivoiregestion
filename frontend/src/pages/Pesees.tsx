@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CalendarIcon, Check, Columns2, Download, RefreshCw } from 'lucide-react'
+import { CalendarIcon, Check, Columns2, Download, RefreshCw, Search, X } from 'lucide-react'
 import { fr } from 'react-day-picker/locale'
 import { usePesees } from '@/hooks/usePesees'
 import type { PeseesParams } from '@/hooks/usePesees'
@@ -118,17 +118,62 @@ export function Pesees() {
 
   const [query, setQuery] = useState<PeseesParams>({ page: 1, limit: 50 })
 
+  // ── Nouveaux filtres ──
+  const [fournisseurs, setFournisseurs] = useState<{ id: number; nom: string }[]>([])
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statut, setStatut] = useState<'TOUS' | 'EN_ATTENTE' | 'PAYÉ'>('TOUS')
+  const [fournisseurId, setFournisseurId] = useState<number | undefined>()
+  const [produit, setProduit] = useState('')
+  const [debouncedProduit, setDebouncedProduit] = useState('')
+
+  useEffect(() => {
+    api.get<{ id: number; nom: string }[]>('/fournisseurs')
+      .then(r => setFournisseurs(r.data))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedProduit(produit), 350)
+    return () => clearTimeout(t)
+  }, [produit])
+
+  useEffect(() => {
+    setQuery(q => ({
+      ...q, page: 1,
+      search: debouncedSearch || undefined,
+      statut: statut === 'TOUS' ? undefined : statut,
+      fournisseurId,
+      produit: debouncedProduit || undefined,
+    }))
+  }, [debouncedSearch, statut, fournisseurId, debouncedProduit])
+
   useEffect(() => {
     refresh(query)
   }, [query, refresh])
 
   const handleRechercher = () => {
     setMouvement('TOUS')
-    setQuery({ dateDebut: buildISO(startDate, startTime), dateFin: buildISO(endDate, endTime), page: 1, limit: 50 })
+    setQuery(q => ({
+      ...q,
+      dateDebut: buildISO(startDate, startTime),
+      dateFin: buildISO(endDate, endTime),
+      page: 1,
+      mouvement: undefined,
+    }))
   }
 
   const handleEffacer = () => {
     setMouvement('TOUS')
+    setSearch('')
+    setStatut('TOUS')
+    setFournisseurId(undefined)
+    setProduit('')
     setStartDate(new Date())
     setStartTime('00:00')
     setEndDate(new Date())
@@ -362,6 +407,61 @@ export function Pesees() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── Filtres avancés ── */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="PS Code, fournisseur, véhicule..."
+            className="w-full rounded-md border bg-background py-2 pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Statut */}
+        <div className="flex overflow-hidden rounded-md border text-sm">
+          {(['TOUS', 'EN_ATTENTE', 'PAYÉ'] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => setStatut(s)}
+              className={`px-3 py-2 font-medium transition-colors ${
+                statut === s ? 'bg-green-800 text-white' : 'bg-background hover:bg-muted'
+              }`}
+            >
+              {s === 'TOUS' ? 'Tous' : s === 'EN_ATTENTE' ? 'En attente' : 'Payé'}
+            </button>
+          ))}
+        </div>
+
+        {/* Fournisseur */}
+        <select
+          value={fournisseurId ?? ''}
+          onChange={e => setFournisseurId(e.target.value ? Number(e.target.value) : undefined)}
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-green-600"
+        >
+          <option value="">Tous les fournisseurs</option>
+          {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+        </select>
+
+        {/* Produit */}
+        <input
+          value={produit}
+          onChange={e => setProduit(e.target.value)}
+          placeholder="Produit..."
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 w-40 focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
 
         <button
           onClick={handleExportExcel}
