@@ -60,7 +60,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
           <button onClick={onClose} className="rounded p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
         {success ? (
-          <p className="py-6 text-center text-sm font-medium text-green-600">Mot de passe mis à jour ✓</p>
+          <p className="py-6 text-center text-sm font-medium text-primary">Mot de passe mis à jour ✓</p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
@@ -80,7 +80,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button type="submit" disabled={loading}
-              className="mt-1 rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-900 disabled:opacity-50">
+              className="mt-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50">
               {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </form>
@@ -115,7 +115,7 @@ function UserMenu({ user, onLogout, onChangePwd }: {
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 rounded-full pl-1 pr-2 py-1 hover:bg-muted transition-colors"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-800 text-sm font-semibold text-white">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
           {getUserInitials(user)}
         </span>
         <ChevronDown className="h-3 w-3 text-muted-foreground" />

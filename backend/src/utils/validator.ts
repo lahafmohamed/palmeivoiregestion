@@ -22,7 +22,7 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const peseeFiltersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(10000).default(20),
   fournisseurId: z.coerce.number().int().optional(),
   produit: z.string().optional(),
   statut: z.enum(['EN_ATTENTE', 'VALIDÉ', 'PAYÉ']).optional(),

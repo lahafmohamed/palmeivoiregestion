@@ -11,7 +11,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-            <div className="w-8 h-8 bg-green-600 rounded"></div>
+            <div className="w-8 h-8 bg-primary rounded"></div>
             <span className="text-gray-900">Palmé Ivoire</span>
           </Link>
 

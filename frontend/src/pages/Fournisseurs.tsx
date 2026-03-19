@@ -27,7 +27,7 @@ function fmtDate(s: string) {
 function MouvementBadge({ mouvement }: { mouvement?: string | null }) {
   if (!mouvement) return <span className="text-muted-foreground text-xs">—</span>
   const map: Record<string, string> = {
-    ENTREE: 'bg-green-100 text-green-800',
+    ENTREE: 'bg-primary/10 text-primary',
     SORTIE: 'bg-orange-100 text-orange-800',
   }
   return (
@@ -41,7 +41,7 @@ function StatutBadge({ statut }: { statut: string }) {
   const map: Record<string, string> = {
     EN_ATTENTE: 'bg-yellow-100 text-yellow-800',
     VALIDÉ: 'bg-blue-100 text-blue-800',
-    PAYÉ: 'bg-green-100 text-green-800',
+    PAYÉ: 'bg-primary/10 text-primary',
   }
   return (
     <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${map[statut] ?? 'bg-gray-100 text-gray-700'}`}>
@@ -188,7 +188,7 @@ function FournisseurDetailView({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-1.5 text-sm text-white hover:bg-green-800 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               Enregistrer
@@ -215,7 +215,7 @@ function FournisseurDetailView({
               <input
                 value={form.nom}
                 onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))}
-                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
@@ -224,7 +224,7 @@ function FournisseurDetailView({
                 value={form.contact}
                 onChange={(e) => setForm((f) => ({ ...f, contact: e.target.value }))}
                 placeholder="—"
-                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="sm:col-span-2">
@@ -233,7 +233,7 @@ function FournisseurDetailView({
                 value={form.adresse}
                 onChange={(e) => setForm((f) => ({ ...f, adresse: e.target.value }))}
                 placeholder="—"
-                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -242,7 +242,7 @@ function FournisseurDetailView({
                 id="actif"
                 checked={form.actif}
                 onChange={(e) => setForm((f) => ({ ...f, actif: e.target.checked }))}
-                className="accent-green-700"
+                className="accent-primary"
               />
               <label htmlFor="actif" className="text-sm">Actif</label>
             </div>
@@ -256,7 +256,7 @@ function FournisseurDetailView({
             <div>
               <dt className="text-xs text-muted-foreground">Statut</dt>
               <dd>
-                <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${fournisseur.actif ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${fournisseur.actif ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600'}`}>
                   {fournisseur.actif ? 'Actif' : 'Inactif'}
                 </span>
               </dd>
@@ -288,7 +288,7 @@ function FournisseurDetailView({
           <p className="text-xs text-muted-foreground mt-0.5">En attente</p>
         </div>
         <div className="rounded-lg border bg-card p-4 shadow-sm text-center">
-          <p className="text-2xl font-bold text-green-700">{fmt(fournisseur.stats.montantPaye)} T</p>
+          <p className="text-2xl font-bold text-primary">{fmt(fournisseur.stats.montantPaye)} T</p>
           <p className="text-xs text-muted-foreground mt-0.5">Payé</p>
         </div>
       </div>
@@ -461,7 +461,7 @@ export function Fournisseurs() {
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Total payé</p>
-            <p className="mt-1 text-2xl font-bold text-green-700">{fmt(totalPaye)} T</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{fmt(totalPaye)} T</p>
           </div>
         </div>
       )}
@@ -474,7 +474,7 @@ export function Fournisseurs() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un fournisseur..."
-            className="w-full rounded-md border bg-background py-1.5 pl-8 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+            className="w-full rounded-md border bg-background py-1.5 pl-8 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {search && (
             <button
@@ -491,7 +491,7 @@ export function Fournisseurs() {
             <button
               key={v}
               onClick={() => setFilterActif(v)}
-              className={`px-3 py-1.5 capitalize ${filterActif === v ? 'bg-green-700 text-white' : 'bg-background hover:bg-muted'}`}
+              className={`px-3 py-1.5 capitalize ${filterActif === v ? 'bg-primary text-white' : 'bg-background hover:bg-muted'}`}
             >
               {v}
             </button>
@@ -515,7 +515,7 @@ export function Fournisseurs() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-green-700 text-white text-xs uppercase tracking-wide">
+              <thead className="bg-primary text-white text-xs uppercase tracking-wide">
                 <tr>
                   <th className="px-4 py-3 text-left">Fournisseur</th>
                   <th className="px-4 py-3 text-left">Code GESpont</th>
@@ -540,19 +540,19 @@ export function Fournisseurs() {
                     <tr
                       key={f.id}
                       onClick={() => setSelectedId(f.id)}
-                      className={`cursor-pointer transition-colors hover:bg-green-50 ${i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}
+                      className={`cursor-pointer transition-colors hover:bg-primary/5 ${i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}
                     >
                       <td className="px-4 py-3 font-medium">{f.nom}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{f.codeGespont}</td>
                       <td className="px-4 py-3 text-muted-foreground">{f.contact ?? '—'}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${f.actif ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${f.actif ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'}`}>
                           {f.actif ? 'Actif' : 'Inactif'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-mono">{(f.stats?.totalPesees ?? 0).toLocaleString('fr-FR')}</td>
                       <td className="px-4 py-3 text-right font-mono text-yellow-700">{fmt(f.stats?.montantEnAttente ?? 0)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-green-700">{fmt(f.stats?.montantPaye ?? 0)}</td>
+                      <td className="px-4 py-3 text-right font-mono text-primary">{fmt(f.stats?.montantPaye ?? 0)}</td>
                       <td className="px-4 py-3 text-right font-mono font-semibold">{fmt(f.stats?.montantTotal ?? 0)}</td>
                       <td className="px-4 py-3 text-muted-foreground">
                         <ChevronRight className="h-4 w-4" />

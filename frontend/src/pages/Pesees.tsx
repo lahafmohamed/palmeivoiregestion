@@ -276,10 +276,10 @@ export function Pesees() {
 
       // Style entête verte
       ws.getRow(1).eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF166534' } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCF1E25' } }
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }
         cell.alignment = { vertical: 'middle', horizontal: 'center' }
-        cell.border = { bottom: { style: 'medium', color: { argb: 'FF14532D' } } }
+        cell.border = { bottom: { style: 'medium', color: { argb: 'FFA01820' } } }
       })
       ws.getRow(1).height = 22
 
@@ -314,7 +314,7 @@ export function Pesees() {
         row.height = 16
 
         // Couleur de fond alternée
-        const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF0FDF4'
+        const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFFFF5F5'
         row.eachCell({ includeEmpty: true }, (cell) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
           cell.font = { size: 9 }
@@ -326,7 +326,7 @@ export function Pesees() {
         const mvIdx = activeCols.indexOf('Mouvement')
         if (mvIdx >= 0) {
           const c = row.getCell(mvIdx + 1)
-          const color = mv === 'ENTREE' ? 'FF166534' : mv === 'SORTIE' ? 'FFF97316' : 'FFDC2626'
+          const color = mv === 'ENTREE' ? 'FFCF1E25' : mv === 'SORTIE' ? 'FFF97316' : 'FFDC2626'
           c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } }
           c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 }
           c.alignment = { horizontal: 'center', vertical: 'middle' }
@@ -379,7 +379,7 @@ export function Pesees() {
         <button
           onClick={handleRechercher}
           disabled={isLoading}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-green-800 px-4 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
         >
           {isLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
           Rechercher
@@ -400,7 +400,7 @@ export function Pesees() {
               key={m}
               onClick={() => handleMouvement(m)}
               className={`px-3 py-2 text-sm font-medium transition-colors ${
-                mouvement === m ? 'bg-green-800 text-white' : 'bg-background text-foreground hover:bg-muted'
+                mouvement === m ? 'bg-primary text-white' : 'bg-background text-foreground hover:bg-muted'
               }`}
             >
               {m === 'TOUS' ? 'Tous' : m === 'ENTREE' ? 'Entrées' : 'Sorties'}
@@ -418,7 +418,7 @@ export function Pesees() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="PS Code, fournisseur, véhicule..."
-            className="w-full rounded-md border bg-background py-2 pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+            className="w-full rounded-md border bg-background py-2 pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -434,7 +434,7 @@ export function Pesees() {
               key={s}
               onClick={() => setStatut(s)}
               className={`px-3 py-2 font-medium transition-colors ${
-                statut === s ? 'bg-green-800 text-white' : 'bg-background hover:bg-muted'
+                statut === s ? 'bg-primary text-white' : 'bg-background hover:bg-muted'
               }`}
             >
               {s === 'TOUS' ? 'Tous' : s === 'EN_ATTENTE' ? 'En attente' : 'Payé'}
@@ -446,7 +446,7 @@ export function Pesees() {
         <select
           value={fournisseurId ?? ''}
           onChange={e => setFournisseurId(e.target.value ? Number(e.target.value) : undefined)}
-          className="rounded-md border bg-background px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Tous les fournisseurs</option>
           {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
@@ -457,7 +457,7 @@ export function Pesees() {
           value={produit}
           onChange={e => setProduit(e.target.value)}
           placeholder="Produit..."
-          className="rounded-md border bg-background px-3 py-2 text-sm h-9 w-40 focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 w-40 focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
@@ -466,7 +466,7 @@ export function Pesees() {
         <button
           onClick={handleExportExcel}
           disabled={filteredData.length === 0 || isExporting}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-green-800 px-4 text-sm font-semibold text-green-800 hover:bg-green-50 disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50"
         >
           <Download className="h-3.5 w-3.5" />
           {isExporting ? 'Export...' : 'Exporter Excel'}
@@ -487,7 +487,7 @@ export function Pesees() {
 
       {/* ── Badge résultats ── */}
       {!isLoading && !error && (
-        <span className="inline-flex items-center rounded-full bg-green-800 px-3 py-1 text-xs font-semibold text-white">
+        <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
           {pagination.total} pesée(s) trouvée(s)
         </span>
       )}
@@ -501,7 +501,7 @@ export function Pesees() {
           </div>
           <div className="rounded-lg border bg-background p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Entrées ({stats.entreesCount})</p>
-            <p className="mt-1 text-2xl font-bold text-green-800">{formatNum(stats.entreesKg)} kg</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{formatNum(stats.entreesKg)} kg</p>
           </div>
           <div className="rounded-lg border bg-background p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Sorties ({stats.sortiesCount})</p>
@@ -517,7 +517,7 @@ export function Pesees() {
             key={key}
             onClick={() => setActiveTab(key)}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === key ? 'border-b-2 border-green-800 text-green-800' : 'text-muted-foreground hover:text-foreground'
+              activeTab === key ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {label}
@@ -530,7 +530,7 @@ export function Pesees() {
         <div className="overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-green-800 hover:bg-green-800">
+              <TableRow className="bg-primary hover:bg-primary">
                 {['Période', 'Total', 'Entrées', 'Sorties', 'Tonnage Entrées (kg)', 'Tonnage Sorties (kg)'].map((h) => (
                   <TableHead key={h} className="whitespace-nowrap text-xs font-semibold text-white">{h}</TableHead>
                 ))}
@@ -558,9 +558,9 @@ export function Pesees() {
                   <TableRow key={row.periode} className="text-xs">
                     <TableCell className="font-medium">{formatPeriodeLabel(row.periode)}</TableCell>
                     <TableCell>{row.total}</TableCell>
-                    <TableCell className="font-semibold text-green-700">{row.entreesCount}</TableCell>
+                    <TableCell className="font-semibold text-primary">{row.entreesCount}</TableCell>
                     <TableCell className="font-semibold text-orange-500">{row.sortiesCount}</TableCell>
-                    <TableCell className="font-semibold text-green-800">{formatNum(row.entreesKg)} kg</TableCell>
+                    <TableCell className="font-semibold text-primary">{formatNum(row.entreesKg)} kg</TableCell>
                     <TableCell className="font-semibold text-orange-500">{formatNum(row.sortiesKg)} kg</TableCell>
                   </TableRow>
                 ))
@@ -577,7 +577,7 @@ export function Pesees() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-green-800 hover:bg-green-800">
+              <TableRow className="bg-primary hover:bg-primary">
                 {activeCols.map((col) => (
                   <TableHead
                     key={col}
@@ -590,7 +590,7 @@ export function Pesees() {
                 ))}
 
                 {/* ── Sélecteur de colonnes style Odoo ── */}
-                <TableHead className="w-8 bg-green-800 p-0 text-white">
+                <TableHead className="w-8 bg-primary p-0 text-white">
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={<button className="flex h-full w-full items-center justify-center p-2 text-white opacity-70 hover:opacity-100 focus:outline-none" />}
@@ -612,7 +612,7 @@ export function Pesees() {
                           <span className={FIXED_COLS.includes(col) ? 'text-muted-foreground' : ''}>
                             {col}
                           </span>
-                          {visibleCols.has(col) && <Check className="h-3.5 w-3.5 shrink-0 text-green-700" />}
+                          {visibleCols.has(col) && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -655,7 +655,7 @@ export function Pesees() {
                     'Site': <span className="whitespace-nowrap">{raw?.PS_SITE ?? '—'}</span>,
                     'Mouvement': (pesee.mouvement || mv) ? (
                       <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
-                        (pesee.mouvement || mv) === 'ENTREE' ? 'bg-green-800 text-white' :
+                        (pesee.mouvement || mv) === 'ENTREE' ? 'bg-primary text-white' :
                         (pesee.mouvement || mv) === 'SORTIE' ? 'bg-orange-500 text-white' :
                         'bg-red-600 text-white'
                       }`}>
@@ -668,7 +668,7 @@ export function Pesees() {
                     'Code Fournisseur': <>{pesee.fournisseur?.codeGespont ?? raw?.FO_CODE ?? '—'}</>,
                     'Poids P1 (kg)': <span className="block text-center">{formatNum(pesee.poidsBrut)}</span>,
                     'Poids P2 (kg)': <span className="block text-center">{formatNum(pesee.tare)}</span>,
-                    'Net (kg)': <span className="block text-center font-bold text-green-800">{formatNum(pesee.poidsNet)}</span>,
+                    'Net (kg)': <span className="block text-center font-bold text-primary">{formatNum(pesee.poidsNet)}</span>,
                     'Date P1': <span className="whitespace-nowrap">{p1.date}</span>,
                     'Heure P1': <span className="whitespace-nowrap">{p1.heure}</span>,
                     'Date P2': <span className="whitespace-nowrap">{p2.date}</span>,
@@ -678,7 +678,7 @@ export function Pesees() {
                       const map: Record<string, string> = {
                         EN_ATTENTE: 'bg-yellow-100 text-yellow-800',
                         VALIDÉ: 'bg-blue-100 text-blue-800',
-                        PAYÉ: 'bg-green-100 text-green-800',
+                        PAYÉ: 'bg-primary/10 text-primary',
                       }
                       return (
                         <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${map[statut] ?? 'bg-gray-100 text-gray-600'}`}>

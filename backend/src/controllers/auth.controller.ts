@@ -11,9 +11,9 @@ export async function loginController(req: Request, res: Response): Promise<void
     // Valider le body
     const { email, password } = loginSchema.parse(req.body);
 
-    // Chercher l'utilisateur par email
-    const user = await db.user.findUnique({
-      where: { email },
+    // Chercher l'utilisateur par email (insensible à la casse)
+    const user = await db.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
     });
 
     if (!user) {
