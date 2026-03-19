@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import db from '../config/database.js';
 import { peseeFiltersSchema } from '../utils/validator.js';
 
+const RESTRICTED_FOURNISSEUR_CODE = '03';
+const RESTRICTED_FOURNISSEUR_NAME = 'NASRALLAH';
+
 // GET /api/pesees — Liste paginée avec filtres
 export async function getPeseesController(req: Request, res: Response): Promise<void> {
   try {
@@ -11,6 +14,25 @@ export async function getPeseesController(req: Request, res: Response): Promise<
 
     // Construire les conditions where
     const where: any = {};
+    const excludeRestricted = req.query.excludeRestricted === 'true';
+    const isAdmin = req.user?.role === 'ADMIN';
+    const isSuperviseur = req.user?.role === 'SUPERVISEUR';
+    // Superviseurs voient NASRALLAH sauf si excludeRestricted (page paiement)
+    const hideRestricted = !isAdmin && (!isSuperviseur || excludeRestricted);
+
+    if (hideRestricted) {
+      where.AND = [
+        ...(where.AND ?? []),
+        {
+          NOT: {
+            OR: [
+              { fournisseur: { codeGespont: RESTRICTED_FOURNISSEUR_CODE } },
+              { fournisseur: { nom: { equals: RESTRICTED_FOURNISSEUR_NAME, mode: 'insensitive' } } },
+            ],
+          },
+        },
+      ];
+    }
 
     if (fournisseurId) {
       where.fournisseurId = fournisseurId;
@@ -68,12 +90,12 @@ export async function getPeseesController(req: Request, res: Response): Promise<
 
     let statsRow = {
       entreesCount: 0, entreesKg: 0, sortiesCount: 0, sortiesKg: 0,
-      enAttenteCount: 0, enAttenteKg: 0, payeCount: 0, payeKg: 0,
+      enAttenteCount: 0, enAttenteKg: 0, payeCount: 0, payeKg: 0, payeMontant: 0,
     };
     if (hasDateFilter) {
       const allForStats = await db.pesee.findMany({
         where,
-        select: { mouvement: true, poidsNet: true, ticket: { select: { statut: true } } },
+        select: { mouvement: true, poidsNet: true, ticket: { select: { statut: true, montant: true } } },
       });
       statsRow = allForStats.reduce(
         (acc, p) => {
@@ -81,11 +103,15 @@ export async function getPeseesController(req: Request, res: Response): Promise<
           if (p.mouvement === 'ENTREE') { acc.entreesCount++; acc.entreesKg += kg; }
           if (p.mouvement === 'SORTIE') { acc.sortiesCount++; acc.sortiesKg += kg; }
           if (p.ticket?.statut === 'EN_ATTENTE') { acc.enAttenteCount++; acc.enAttenteKg += kg; }
-          if (p.ticket?.statut === 'PAYÉ')       { acc.payeCount++;       acc.payeKg += kg; }
+          if (p.ticket?.statut === 'PAYÉ') {
+            acc.payeCount++;
+            acc.payeKg += kg;
+            acc.payeMontant += Number(p.ticket.montant ?? 0);
+          }
           return acc;
         },
         { entreesCount: 0, entreesKg: 0, sortiesCount: 0, sortiesKg: 0,
-          enAttenteCount: 0, enAttenteKg: 0, payeCount: 0, payeKg: 0 }
+          enAttenteCount: 0, enAttenteKg: 0, payeCount: 0, payeKg: 0, payeMontant: 0 }
       );
     }
 

@@ -2,11 +2,27 @@ import { Request, Response } from 'express';
 import db from '../config/database.js';
 import { updateFournisseurSchema } from '../utils/validator.js';
 
+const RESTRICTED_FOURNISSEUR_CODE = '03';
+const RESTRICTED_FOURNISSEUR_NAME = 'NASRALLAH';
+
 // GET /api/fournisseurs — Liste avec stats
 export async function getFournisseursController(req: Request, res: Response): Promise<void> {
   try {
+    const isAdmin = req.user?.role === 'ADMIN';
+    const fournisseursWhere = isAdmin
+      ? undefined
+      : {
+          NOT: {
+            OR: [
+              { codeGespont: RESTRICTED_FOURNISSEUR_CODE },
+              { nom: { equals: RESTRICTED_FOURNISSEUR_NAME, mode: 'insensitive' as const } },
+            ],
+          },
+        };
+
     const [fournisseurs, peseeStats] = await Promise.all([
       db.fournisseur.findMany({
+        where: fournisseursWhere,
         orderBy: { nom: 'asc' },
         select: { id: true, nom: true, codeGespont: true, contact: true, adresse: true, actif: true, createdAt: true },
       }),

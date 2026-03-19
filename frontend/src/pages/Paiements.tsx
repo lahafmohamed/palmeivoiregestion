@@ -444,6 +444,7 @@ export function Paiements() {
 
     const params = new URLSearchParams({ page: String(page), limit: '100', dateDebut, dateFin })
     params.set('mouvement', 'ENTREE')
+    params.set('excludeRestricted', 'true')
     if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
     if (statut !== 'TOUS') params.set('statut', statut)
     if (fournisseurId) params.set('fournisseurId', String(fournisseurId))
