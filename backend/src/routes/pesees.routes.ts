@@ -3,6 +3,7 @@ import {
   getPeseesController,
   getPeseeByIdController,
   getPeseesGroupedController,
+  getProduitsController,
 } from '../controllers/pesees.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 
@@ -11,6 +12,7 @@ router.use(authenticate);
 
 // Avant /:id pour éviter les collisions
 router.get('/grouped', getPeseesGroupedController);
+router.get('/produits', getProduitsController);
 router.get('/', getPeseesController);
 router.get('/:id', getPeseeByIdController);
 

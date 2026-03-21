@@ -67,6 +67,11 @@ export interface Ticket {
   paiementId?: number | null
   notes?: string | null
   modifiePar?: number | null
+  paiement?: {
+    createur?: { nom: string } | null
+    reference?: string
+    modePaiement?: string
+  } | null
 }
 
 export interface Pesee {

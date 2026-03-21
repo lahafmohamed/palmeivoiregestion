@@ -427,6 +427,8 @@ export function Paiements() {
   const [error, setError] = useState<string | null>(null)
   const [fournisseurs, setFournisseurs] = useState<{ id: number; nom: string }[]>([])
   const [fournisseurId, setFournisseurId] = useState<number | undefined>()
+  const [produits, setProduits] = useState<string[]>([])
+  const [produitFilter, setProduitFilter] = useState('')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statut, setStatut] = useState<StatutFilter>('TOUS')
@@ -476,6 +478,9 @@ export function Paiements() {
     api.get<{ id: number; nom: string }[]>('/fournisseurs')
       .then(r => setFournisseurs(r.data))
       .catch(() => {})
+    api.get<string[]>('/pesees/produits')
+      .then(r => setProduits(r.data))
+      .catch(() => {})
   }, [])
 
   // Debounce search + produit → reset page quand la recherche change
@@ -484,7 +489,7 @@ export function Paiements() {
     return () => clearTimeout(t)
   }, [search])
 
-  useEffect(() => { setPage(1) }, [debouncedSearch, statut, dateDebut, dateFin, fournisseurId])
+  useEffect(() => { setPage(1) }, [debouncedSearch, statut, dateDebut, dateFin, fournisseurId, produitFilter])
 
   // Chargement unique — toutes les dépendances explicites, pas de useCallback
   useEffect(() => {
@@ -499,6 +504,7 @@ export function Paiements() {
     if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
     if (statut !== 'TOUS') params.set('statut', statut)
     if (fournisseurId) params.set('fournisseurId', String(fournisseurId))
+    if (produitFilter) params.set('produit', produitFilter)
 
     api.get<{ data: Pesee[]; pagination: { total: number }; stats?: any }>(`/pesees?${params}`)
       .then((r) => {
@@ -519,7 +525,7 @@ export function Paiements() {
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
-  }, [page, debouncedSearch, statut, dateDebut, dateFin, fournisseurId, reloadKey])
+  }, [page, debouncedSearch, statut, dateDebut, dateFin, fournisseurId, produitFilter, reloadKey])
 
 
 
@@ -535,6 +541,7 @@ export function Paiements() {
     if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
     if (statut !== 'TOUS') params.set('statut', statut)
     if (fournisseurId) params.set('fournisseurId', String(fournisseurId))
+    if (produitFilter) params.set('produit', produitFilter)
 
     api.get<{ data: Pesee[] }>(`/pesees?${params}`)
       .then((r) => {
@@ -556,7 +563,7 @@ export function Paiements() {
       })
       .catch(() => setGroupedError('Erreur de chargement'))
       .finally(() => setGroupedLoading(false))
-  }, [activeTab, dateDebut, dateFin, debouncedSearch, statut, fournisseurId, reloadKey])
+  }, [activeTab, dateDebut, dateFin, debouncedSearch, statut, fournisseurId, produitFilter, reloadKey])
 
   // ── Export rapport Excel ──
   const handleExportReport = async () => {
@@ -722,6 +729,16 @@ export function Paiements() {
         >
           <option value="">Tous les fournisseurs</option>
           {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+        </select>
+
+        {/* Produit */}
+        <select
+          value={produitFilter}
+          onChange={e => setProduitFilter(e.target.value)}
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">Tous les produits</option>
+          {produits.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
 
       </div>

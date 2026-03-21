@@ -88,7 +88,9 @@ const inputCls =
 export function Pesees() {
   const { data, isLoading, error, pagination, stats, refresh } = usePesees()
 
-  const [startDate, setStartDate] = useState<Date>(new Date())
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const d = new Date(); d.setDate(1); return d
+  })
   const [startTime, setStartTime] = useState('00:00')
   const [endDate, setEndDate] = useState<Date>(new Date())
   const [endTime, setEndTime] = useState('23:59')
@@ -116,7 +118,14 @@ export function Pesees() {
   }
   const activeCols = ALL_COLS.filter((c) => visibleCols.has(c))
 
-  const [query, setQuery] = useState<PeseesParams>({ page: 1, limit: 50 })
+  const [query, setQuery] = useState<PeseesParams>(() => {
+    const monthStart = new Date(); monthStart.setDate(1)
+    return {
+      page: 1, limit: 50,
+      dateDebut: buildISO(monthStart, '00:00'),
+      dateFin: buildISO(new Date(), '23:59'),
+    }
+  })
 
   // ── Nouveaux filtres ──
   const [fournisseurs, setFournisseurs] = useState<{ id: number; nom: string }[]>([])
@@ -125,11 +134,14 @@ export function Pesees() {
   const [statut, setStatut] = useState<'TOUS' | 'EN_ATTENTE' | 'PAYÉ'>('TOUS')
   const [fournisseurId, setFournisseurId] = useState<number | undefined>()
   const [produit, setProduit] = useState('')
-  const [debouncedProduit, setDebouncedProduit] = useState('')
+  const [produits, setProduits] = useState<string[]>([])
 
   useEffect(() => {
     api.get<{ id: number; nom: string }[]>('/fournisseurs')
       .then(r => setFournisseurs(r.data))
+      .catch(() => {})
+    api.get<string[]>('/pesees/produits')
+      .then(r => setProduits(r.data))
       .catch(() => {})
   }, [])
 
@@ -139,19 +151,14 @@ export function Pesees() {
   }, [search])
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedProduit(produit), 350)
-    return () => clearTimeout(t)
-  }, [produit])
-
-  useEffect(() => {
     setQuery(q => ({
       ...q, page: 1,
       search: debouncedSearch || undefined,
       statut: statut === 'TOUS' ? undefined : statut,
       fournisseurId,
-      produit: debouncedProduit || undefined,
+      produit: produit || undefined,
     }))
-  }, [debouncedSearch, statut, fournisseurId, debouncedProduit])
+  }, [debouncedSearch, statut, fournisseurId, produit])
 
   useEffect(() => {
     refresh(query)
@@ -453,12 +460,14 @@ export function Pesees() {
         </select>
 
         {/* Produit */}
-        <input
+        <select
           value={produit}
           onChange={e => setProduit(e.target.value)}
-          placeholder="Produit..."
-          className="rounded-md border bg-background px-3 py-2 text-sm h-9 w-40 focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+          className="rounded-md border bg-background px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">Tous les produits</option>
+          {produits.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -493,7 +502,7 @@ export function Pesees() {
       )}
 
       {/* ── Cartes stats (uniquement si filtre date actif) ── */}
-      {!isLoading && !error && data.length > 0 && hasDateFilter && (
+      {!isLoading && !error && data.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-lg border bg-background p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Total pesées</p>
@@ -681,9 +690,16 @@ export function Pesees() {
                         PAYÉ: 'bg-primary/10 text-primary',
                       }
                       return (
-                        <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${map[statut] ?? 'bg-gray-100 text-gray-600'}`}>
-                          {statut.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${map[statut] ?? 'bg-gray-100 text-gray-600'}`}>
+                            {statut.replace('_', ' ')}
+                          </span>
+                          {statut === 'PAYÉ' && (
+                            <span className="text-[10px] font-medium text-primary">
+                              par {pesee.ticket?.paiement?.createur?.nom ?? '—'}
+                            </span>
+                          )}
+                        </div>
                       )
                     })(),
                     'Annulée': (

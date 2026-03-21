@@ -5,6 +5,21 @@ import { peseeFiltersSchema } from '../utils/validator.js';
 const RESTRICTED_FOURNISSEUR_CODE = '03';
 const RESTRICTED_FOURNISSEUR_NAME = 'NASRALLAH';
 
+// GET /api/pesees/produits — Liste distincte des produits
+export async function getProduitsController(_req: Request, res: Response): Promise<void> {
+  try {
+    const produits = await db.pesee.findMany({
+      distinct: ['produit'],
+      select: { produit: true },
+      where: { produit: { not: '' } },
+      orderBy: { produit: 'asc' },
+    });
+    res.json(produits.map(p => p.produit).filter(Boolean));
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+}
+
 // GET /api/pesees — Liste paginée avec filtres
 export async function getPeseesController(req: Request, res: Response): Promise<void> {
   try {
