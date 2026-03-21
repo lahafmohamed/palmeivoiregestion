@@ -58,7 +58,7 @@ export async function syncPeseesFromGespont(dateDebut?: Date, dateFin?: Date): P
   const stats: SyncStats = { fetched: 0, inserted: 0, skipped: 0, durationMs: 0, status: 'SUCCÈS' };
 
   try {
-    // Fenêtre fixe : 3 jours en arrière → aujourd'hui 23h59
+    // Fenêtre fixe : 3 jours en arrière → maintenant (rattrape les arrêts serveur)
     const syncStart = dateDebut ? new Date(dateDebut) : (() => {
       const d = new Date(); d.setDate(d.getDate() - 3); d.setHours(0, 0, 0, 0); return d;
     })();

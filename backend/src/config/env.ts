@@ -37,7 +37,7 @@ const envSchema = z.object({
 
   // Sync
   SYNC_ENABLED: z.enum(['true', 'false']).transform(v => v === 'true').default('true' as const),
-  SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(30),
+  SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),
 });
 
 // Type pour l'objet d'environnement validé

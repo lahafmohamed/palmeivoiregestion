@@ -359,7 +359,7 @@ const FIXED_COLS: ColName[] = ['Sélection', 'Statut']
 
 const DEFAULT_COLS = new Set<ColName>([
   'Sélection', 'Date', 'Fournisseur', 'PS Code', 'Produit',
-  'Mouvement', 'Net (kg)', 'Prix/kg', 'Montant', 'Dernier prix', 'Statut',
+  'Mouvement', 'Net (kg)', 'Prix/kg', 'Montant', 'Dernier prix', 'Confirmé par', 'Statut',
 ])
 
 // ─── Rapport groupé ──────────────────────────────────────────────────────────
@@ -1006,6 +1006,11 @@ export function Paiements() {
                               allowedTransitions={transitions}
                               onChanged={reload}
                             />
+                            {p.ticket?.statut === 'PAYÉ' && (
+                              <span className="text-[10px] font-medium text-primary">
+                                par {p.ticket?.paiement?.createur?.nom ?? '—'}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${STATUT_STYLE[statutVal] ?? 'bg-gray-100 text-gray-600'}`}>
